@@ -22,21 +22,6 @@ AI model proxy that accepts OpenAI or Anthropic format requests and forwards the
 
 ## 🚀 Quick Start
 
-### Install via curl (Linux/macOS)
-
-```bash
-curl -sSL https://raw.githubusercontent.com/macedot/model-router/master/install.sh | bash
-```
-
-This downloads the latest pre-built binary for your platform.
-
-### Build from source
-
-```bash
-make build
-./model-router
-```
-
 ### Run with Docker
 
 ```bash
@@ -201,8 +186,6 @@ make build            # Build binary locally
 make run              # Build and run
 make test             # Run go test ./...
 make clean            # Remove binary
-make install          # Build and install to ~/.local/bin/
-make uninstall        # Remove installation (keeps config)
 make release VERSION=1.0.0  # Create git tag and GitHub release
 ```
 
