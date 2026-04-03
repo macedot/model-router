@@ -8,13 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
 	"model-router/models"
 	"model-router/services"
 )
 
-func newTestOpenAIHandler() (*OpenAIHandler, *fiber.App) {
-	var registry services.RegistryReader = services.NewRegistry([]models.InternalModel{
+func newTestOpenAIHandler() http.HandlerFunc {
+	registry := services.NewRegistry([]models.InternalModel{
 		{
 			Name:          "test-model",
 			RequestFormat: models.FormatOpenAI,
@@ -26,29 +25,22 @@ func newTestOpenAIHandler() (*OpenAIHandler, *fiber.App) {
 		},
 	})
 	forwarder := services.NewForwarder()
-	handler := NewOpenAIHandler(registry, forwarder)
-
-	app := fiber.New()
-	app.Post("/v1/chat/completions", handler.Handle)
-	return handler, app
+	return NewOpenAIHandler(registry, forwarder)
 }
 
 func TestOpenAIHandler_InvalidJSON(t *testing.T) {
-	_, app := newTestOpenAIHandler()
+	handler := newTestOpenAIHandler()
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader([]byte("{invalid}")))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
 
-	if resp.StatusCode != fiber.StatusBadRequest {
-		t.Errorf("status = %d; want %d", resp.StatusCode, fiber.StatusBadRequest)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusBadRequest)
 	}
 
-	body, _ := io.ReadAll(resp.Body)
+	body, _ := io.ReadAll(rec.Body)
 	var errResp map[string]interface{}
 	json.Unmarshal(body, &errResp)
 
@@ -58,22 +50,19 @@ func TestOpenAIHandler_InvalidJSON(t *testing.T) {
 }
 
 func TestOpenAIHandler_EmptyModel(t *testing.T) {
-	_, app := newTestOpenAIHandler()
+	handler := newTestOpenAIHandler()
 
 	body := `{"model": "", "messages": [{"role": "user", "content": "hello"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
 
-	if resp.StatusCode != fiber.StatusBadRequest {
-		t.Errorf("status = %d; want %d", resp.StatusCode, fiber.StatusBadRequest)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusBadRequest)
 	}
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, _ := io.ReadAll(rec.Body)
 	var errResp map[string]interface{}
 	json.Unmarshal(respBody, &errResp)
 
@@ -84,22 +73,19 @@ func TestOpenAIHandler_EmptyModel(t *testing.T) {
 }
 
 func TestOpenAIHandler_EmptyMessages(t *testing.T) {
-	_, app := newTestOpenAIHandler()
+	handler := newTestOpenAIHandler()
 
 	body := `{"model": "test-model", "messages": []}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
 
-	if resp.StatusCode != fiber.StatusBadRequest {
-		t.Errorf("status = %d; want %d", resp.StatusCode, fiber.StatusBadRequest)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusBadRequest)
 	}
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, _ := io.ReadAll(rec.Body)
 	var errResp map[string]interface{}
 	json.Unmarshal(respBody, &errResp)
 
@@ -110,22 +96,19 @@ func TestOpenAIHandler_EmptyMessages(t *testing.T) {
 }
 
 func TestOpenAIHandler_ModelNotFound(t *testing.T) {
-	_, app := newTestOpenAIHandler()
+	handler := newTestOpenAIHandler()
 
 	body := `{"model": "unknown-model", "messages": [{"role": "user", "content": "hello"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
 
-	if resp.StatusCode != fiber.StatusNotFound {
-		t.Errorf("status = %d; want %d", resp.StatusCode, fiber.StatusNotFound)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusNotFound)
 	}
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, _ := io.ReadAll(rec.Body)
 	var errResp map[string]interface{}
 	json.Unmarshal(respBody, &errResp)
 

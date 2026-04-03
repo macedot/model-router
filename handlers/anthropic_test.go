@@ -8,13 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
 	"model-router/models"
 	"model-router/services"
 )
 
-func newTestAnthropicHandler() (*AnthropicHandler, *fiber.App) {
-	var registry services.RegistryReader = services.NewRegistry([]models.InternalModel{
+func newTestAnthropicHandler() http.HandlerFunc {
+	registry := services.NewRegistry([]models.InternalModel{
 		{
 			Name:          "test-anthropic-model",
 			RequestFormat: models.FormatAnthropic,
@@ -26,46 +25,36 @@ func newTestAnthropicHandler() (*AnthropicHandler, *fiber.App) {
 		},
 	})
 	forwarder := services.NewForwarder()
-	handler := NewAnthropicHandler(registry, forwarder)
-
-	app := fiber.New()
-	app.Post("/v1/messages", handler.Handle)
-	return handler, app
+	return NewAnthropicHandler(registry, forwarder)
 }
 
 func TestAnthropicHandler_InvalidJSON(t *testing.T) {
-	_, app := newTestAnthropicHandler()
+	handler := newTestAnthropicHandler()
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewReader([]byte("{invalid}")))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
 
-	if resp.StatusCode != fiber.StatusBadRequest {
-		t.Errorf("status = %d; want %d", resp.StatusCode, fiber.StatusBadRequest)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusBadRequest)
 	}
 }
 
 func TestAnthropicHandler_EmptyModel(t *testing.T) {
-	_, app := newTestAnthropicHandler()
+	handler := newTestAnthropicHandler()
 
 	body := `{"model": "", "messages": [{"role": "user", "content": "hello"}], "max_tokens": 1024}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
 
-	if resp.StatusCode != fiber.StatusBadRequest {
-		t.Errorf("status = %d; want %d", resp.StatusCode, fiber.StatusBadRequest)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusBadRequest)
 	}
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, _ := io.ReadAll(rec.Body)
 	var errResp map[string]interface{}
 	json.Unmarshal(respBody, &errResp)
 
@@ -76,22 +65,19 @@ func TestAnthropicHandler_EmptyModel(t *testing.T) {
 }
 
 func TestAnthropicHandler_EmptyMessages(t *testing.T) {
-	_, app := newTestAnthropicHandler()
+	handler := newTestAnthropicHandler()
 
 	body := `{"model": "test-anthropic-model", "messages": [], "max_tokens": 1024}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
 
-	if resp.StatusCode != fiber.StatusBadRequest {
-		t.Errorf("status = %d; want %d", resp.StatusCode, fiber.StatusBadRequest)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusBadRequest)
 	}
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, _ := io.ReadAll(rec.Body)
 	var errResp map[string]interface{}
 	json.Unmarshal(respBody, &errResp)
 
@@ -102,22 +88,19 @@ func TestAnthropicHandler_EmptyMessages(t *testing.T) {
 }
 
 func TestAnthropicHandler_ModelNotFound(t *testing.T) {
-	_, app := newTestAnthropicHandler()
+	handler := newTestAnthropicHandler()
 
 	body := `{"model": "unknown-model", "messages": [{"role": "user", "content": "hello"}], "max_tokens": 1024}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
 
-	if resp.StatusCode != fiber.StatusNotFound {
-		t.Errorf("status = %d; want %d", resp.StatusCode, fiber.StatusNotFound)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusNotFound)
 	}
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, _ := io.ReadAll(rec.Body)
 	var errResp map[string]interface{}
 	json.Unmarshal(respBody, &errResp)
 

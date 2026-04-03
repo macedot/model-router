@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -82,8 +83,9 @@ func (f *Forwarder) ForwardOpenAI(ctx context.Context, req *models.OpenAIRequest
 }
 
 // ForwardOpenAIStream forwards a streaming OpenAI request to the target provider,
-// writing chunks directly to w as they arrive. It enforces maxResponseSize via limitedReader.
-func (f *Forwarder) ForwardOpenAIStream(ctx context.Context, req *models.OpenAIRequest, target models.ExternalModel, w io.Writer) error {
+// writing chunks directly to w as they arrive (goproxy-style streaming).
+// For SSE responses, it flushes after every write to ensure immediate delivery.
+func (f *Forwarder) ForwardOpenAIStream(ctx context.Context, req *models.OpenAIRequest, target models.ExternalModel, w http.ResponseWriter) error {
 	var body []byte
 	var err error
 
@@ -124,20 +126,54 @@ func (f *Forwarder) ForwardOpenAIStream(ctx context.Context, req *models.OpenAIR
 		return fmt.Errorf("external API returned %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	// Stream response directly to writer with size limit.
-	limited := &limitedReader{
-		R:    resp.Body,
-		Left: maxResponseSize,
-	}
-	_, err = io.Copy(w, limited)
+	// Use flushWriter for SSE responses to flush after every write (like goproxy).
+	// This ensures each NDJSON chunk arrives immediately at the client.
+	w.WriteHeader(resp.StatusCode)
+	fw := newFlushWriter(w)
+	limited := &limitedReader{R: resp.Body, Left: maxResponseSize}
+	_, err = io.Copy(fw, limited)
 	if err == errResponseTruncated {
 		return fmt.Errorf("response exceeds maximum size limit of %d bytes", maxResponseSize)
 	}
 	if err != nil {
 		return fmt.Errorf("reading streaming response: %w", err)
 	}
+	fw.Flush()
 
 	return nil
+}
+
+// flushWriter wraps an http.ResponseWriter and flushes after every write,
+// enabling true streaming for SSE/chunked responses (goproxy pattern).
+type flushWriter struct {
+	w  http.ResponseWriter
+	fw *bufio.Writer
+}
+
+func newFlushWriter(w http.ResponseWriter) *flushWriter {
+	return &flushWriter{w: w, fw: bufio.NewWriterSize(w, 4096)}
+}
+
+// Write buffers p and flushes immediately so each SSE chunk arrives at the client
+// without waiting for the buffer to fill.
+func (fw *flushWriter) Write(p []byte) (n int, err error) {
+	n, err = fw.fw.Write(p)
+	if err == nil {
+		err = fw.fw.Flush()
+	}
+	return
+}
+
+func (fw *flushWriter) Header() http.Header {
+	return fw.w.Header()
+}
+
+func (fw *flushWriter) WriteHeader(statusCode int) {
+	fw.w.WriteHeader(statusCode)
+}
+
+func (fw *flushWriter) Flush() {
+	fw.fw.Flush()
 }
 
 // errResponseTruncated is returned when a response exceeds the size limit.

@@ -4,18 +4,40 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"model-router/config"
 	"model-router/handlers"
 	"model-router/services"
 )
+
+// loggingMiddleware wraps an http.Handler to log requests.
+type loggingMiddleware struct {
+	handler http.Handler
+}
+
+func (m *loggingMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s", r.Method, r.URL.Path)
+	m.handler.ServeHTTP(w, r)
+}
+
+// recoverMiddleware catches panics and returns 500.
+type recoverMiddleware struct {
+	handler http.Handler
+}
+
+func (m *recoverMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("panic: %v", err)
+			http.Error(w, `{"error":{"message":"Internal server error"}}`, http.StatusInternalServerError)
+		}
+	}()
+	m.handler.ServeHTTP(w, r)
+}
 
 func main() {
 	log.Printf("model-router v%s starting...", FullVersion)
@@ -33,21 +55,22 @@ func main() {
 	openaiHandler := handlers.NewOpenAIHandler(registry, forwarder)
 	anthropicHandler := handlers.NewAnthropicHandler(registry, forwarder)
 
-	// Create Fiber app
-	app := fiber.New(fiber.Config{
+	// Create server with timeouts from config
+	server := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.Port),
+		Handler:      nil, // use default mux
 		ReadTimeout:  config.Defaults.ReadTimeout,
 		WriteTimeout: config.Defaults.WriteTimeout,
-		BodyLimit:    config.Defaults.BodyLimit,
-	})
+	}
 
-	// Middleware
-	app.Use(recover.New())
-	app.Use(logger.New())
+	// Register routes on default mux with middleware
+	mux := http.NewServeMux()
+	mux.HandleFunc("/models", modelsHandler)
+	mux.HandleFunc("/v1/chat/completions", openaiHandler)
+	mux.HandleFunc("/v1/messages", anthropicHandler)
 
-	// Routes
-	app.Get("/models", modelsHandler.List)
-	app.Post("/v1/chat/completions", openaiHandler.Handle)
-	app.Post("/v1/messages", anthropicHandler.Handle)
+	// Wrap with middleware (recover first, then logging)
+	server.Handler = &recoverMiddleware{handler: &loggingMiddleware{handler: mux}}
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -55,8 +78,8 @@ func main() {
 	errCh := make(chan error, 1)
 
 	go func() {
-		addr := fmt.Sprintf(":%d", cfg.Port)
-		if err := app.Listen(addr); err != nil {
+		log.Printf("Listening on %s", server.Addr)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- err
 		}
 	}()
@@ -71,7 +94,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Defaults.ShutdownTimeout)
 	defer cancel()
 
-	if err := app.ShutdownWithContext(ctx); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
 
