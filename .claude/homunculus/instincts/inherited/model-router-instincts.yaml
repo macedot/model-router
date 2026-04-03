@@ -1,0 +1,513 @@
+# Instincts generated from https://github.com/macedot/model-router
+# Generated: 2026-04-03T17:23:24.447Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: model-router-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/macedot/model-router
+---
+
+# Model Router Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: refactor, chore, fix, test
+
+## Evidence
+
+- 4 commits analyzed
+- Detected conventional commit pattern
+- Examples: refactor: migrate from Fiber v2 to Go stdlib net/http, chore: remove Fiber v2 dependency via go mod tidy
+
+---
+id: model-router-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/macedot/model-router
+---
+
+# Model Router Commit Length
+
+## Action
+
+Write moderate-length commit messages (~57 characters)
+
+## Evidence
+
+- Average commit message length: 57 chars
+- Based on 4 commits
+
+---
+id: model-router-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/macedot/model-router
+---
+
+# Model Router Naming Files
+
+## Action
+
+Use snake_case naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: snake_case
+
+---
+id: model-router-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/macedot/model-router
+---
+
+# Model Router Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: model-router-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/macedot/model-router
+---
+
+# Model Router Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: model-router-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/macedot/model-router
+---
+
+# Model Router Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: model-router-workflow-refactor-core-http-framework
+trigger: "when doing refactor core http framework"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/macedot/model-router
+---
+
+# Model Router Workflow Refactor Core Http Framework
+
+## Action
+
+Follow the refactor-core-http-framework workflow:
+1. Update all handler files to use new framework APIs.
+2. Rewrite middleware and server setup in main.go.
+3. Update or rewrite tests for handlers to use new test patterns.
+4. Update any service files that interact with HTTP responses.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: handlers/*.go, handlers/*_test.go, main.go
+
+---
+id: model-router-workflow-dependency-removal-after-refactor
+trigger: "when doing dependency removal after refactor"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/macedot/model-router
+---
+
+# Model Router Workflow Dependency Removal After Refactor
+
+## Action
+
+Follow the dependency-removal-after-refactor workflow:
+1. Run go mod tidy to clean up go.mod and go.sum.
+2. Commit the updated dependency files.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: go.mod, go.sum
+
+---
+id: model-router-workflow-add-or-improve-test-coverage-for-services-and-handlers
+trigger: "when doing add or improve test coverage for services and handlers"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/macedot/model-router
+---
+
+# Model Router Workflow Add Or Improve Test Coverage For Services And Handlers
+
+## Action
+
+Follow the add-or-improve-test-coverage-for-services-and-handlers workflow:
+1. Create or update *_test.go files for services and handlers.
+2. Write tests for success, error, and edge cases.
+3. Verify coverage improvements.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: services/*_test.go, handlers/*_test.go
+
+---
+id: model-router-workflow-critical-bugfix-in-handler-or-service
+trigger: "when doing critical bugfix in handler or service"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/macedot/model-router
+---
+
+# Model Router Workflow Critical Bugfix In Handler Or Service
+
+## Action
+
+Follow the critical-bugfix-in-handler-or-service workflow:
+1. Identify and fix the bug in the relevant handler or service file.
+2. Update configuration if needed (e.g., timeouts).
+3. Add or update tests to cover the fixed scenario.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: handlers/*.go, services/*.go, config/*.go
+
+---
+id: model-router-instinct-file-naming
+trigger: "When creating or renaming a file"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct File Naming
+
+## Action
+
+Use snake_case for file names
+
+## Evidence
+
+- Pattern in files: handlers/*.go, services/*.go, config/*.go
+
+---
+id: model-router-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Function Naming
+
+## Action
+
+Use camelCase for function names
+
+## Evidence
+
+- Pattern in codebase: Go functions use camelCase
+
+---
+id: model-router-instinct-class-naming
+trigger: "When defining a new struct or class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Class Naming
+
+## Action
+
+Use PascalCase for struct/class names
+
+## Evidence
+
+- Pattern in codebase: Go structs use PascalCase
+
+---
+id: model-router-instinct-constant-naming
+trigger: "When defining a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in codebase: Go constants use SCREAMING_SNAKE_CASE
+
+---
+id: model-router-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Import Style
+
+## Action
+
+Use relative imports
+
+## Evidence
+
+- Pattern in codebase: Go uses relative imports
+
+---
+id: model-router-instinct-export-style
+trigger: "When exporting functions or types"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Export Style
+
+## Action
+
+Use named exports (export only what is needed)
+
+## Evidence
+
+- Pattern in codebase: Go exports with capitalized names
+
+---
+id: model-router-instinct-test-filename
+trigger: "When creating test files"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Test Filename
+
+## Action
+
+Name test files with *_test.go suffix
+
+## Evidence
+
+- Pattern in files: handlers/*_test.go, services/*_test.go
+
+---
+id: model-router-instinct-test-coverage
+trigger: "When adding or refactoring logic in handlers or services"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Test Coverage
+
+## Action
+
+Add or update tests for success, error, and edge cases in *_test.go files
+
+## Evidence
+
+- Workflow: add-or-improve-test-coverage-for-services-and-handlers
+- Commits: test: add TDD coverage for forwarder, handlers, and registry
+
+---
+id: model-router-instinct-test-location
+trigger: "When organizing test files"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Test Location
+
+## Action
+
+Place test files in the same directory as the code they test, using *_test.go
+
+## Evidence
+
+- Pattern in files: handlers/*_test.go, services/*_test.go
+
+---
+id: model-router-instinct-git-commit-format
+trigger: "When writing a commit message"
+confidence: 0.95
+domain: git
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Git Commit Format
+
+## Action
+
+Use conventional commit prefixes: refactor, chore, fix, test
+
+## Evidence
+
+- Pattern in commits: refactor: ..., chore: ..., fix: ..., test: ...
+
+---
+id: model-router-instinct-git-commit-length
+trigger: "When writing a commit message"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Git Commit Length
+
+## Action
+
+Keep commit messages concise (average ~57 characters)
+
+## Evidence
+
+- Pattern: average commit length is 57 characters
+
+---
+id: model-router-instinct-refactor-core-http-framework
+trigger: "When someone wants to change the underlying HTTP framework or major server architecture"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Refactor Core Http Framework
+
+## Action
+
+Update handler files, main.go, and relevant services to use new framework APIs; update tests accordingly
+
+## Evidence
+
+- Workflow: refactor-core-http-framework
+- Commits: refactor: migrate from Fiber v2 to Go stdlib net/http
+
+---
+id: model-router-instinct-dependency-removal-after-refactor
+trigger: "When a major dependency is removed from the codebase"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Dependency Removal After Refactor
+
+## Action
+
+Run go mod tidy and commit updated go.mod and go.sum
+
+## Evidence
+
+- Workflow: dependency-removal-after-refactor
+- Commit: chore: remove Fiber v2 dependency via go mod tidy
+
+---
+id: model-router-instinct-add-or-improve-test-coverage
+trigger: "When new logic is added or after a refactor/bugfix in handlers or services"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Add Or Improve Test Coverage
+
+## Action
+
+Create or update *_test.go files for affected modules and verify coverage
+
+## Evidence
+
+- Workflow: add-or-improve-test-coverage-for-services-and-handlers
+- Commits: test: add TDD coverage for forwarder, handlers, and registry
+
+---
+id: model-router-instinct-critical-bugfix-in-handler-or-service
+trigger: "When a critical runtime bug or production issue is discovered"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: macedot/model-router
+---
+
+# Model Router Instinct Critical Bugfix In Handler Or Service
+
+## Action
+
+Fix the bug in relevant handler/service, update config if needed, and add/update tests for the scenario
+
+## Evidence
+
+- Workflow: critical-bugfix-in-handler-or-service
+- Commit: fix: CRITICAL panic in streaming path and shutdown timeout mismatch
+
