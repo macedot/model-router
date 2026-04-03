@@ -23,7 +23,7 @@ var Defaults = struct {
 	BodyLimit:       50 * 1024 * 1024, // 50MB
 	Port:            12345,
 	ReadTimeout:     120 * time.Second,
-	ShutdownTimeout: 10 * time.Second,
+	ShutdownTimeout: 120 * time.Second,
 	WriteTimeout:    120 * time.Second,
 }
 

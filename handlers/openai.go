@@ -38,6 +38,10 @@ func NewOpenAIHandler(registry services.RegistryReader, forwarder *services.Forw
 		isStream := req.Stream != nil && *req.Stream
 
 		if isStream {
+			if len(internalModel.Externals) == 0 {
+				http.Error(w, `{"error":{"message":"No external providers configured","type":"invalid_request_error"}}`, http.StatusInternalServerError)
+				return
+			}
 			w.Header().Set("Content-Type", "text/event-stream")
 			w.Header().Set("Transfer-Encoding", "chunked")
 			// ForwardOpenAIStream writes directly to w with flushWriter (goproxy pattern)
@@ -63,7 +67,11 @@ func NewOpenAIHandler(registry services.RegistryReader, forwarder *services.Forw
 			if internalModel.Strategy == models.StrategyFallback &&
 				i < len(internalModel.Externals)-1 &&
 				internalModel.RetryDelaySecs > 0 {
-				time.Sleep(time.Duration(internalModel.RetryDelaySecs) * time.Second)
+				select {
+				case <-r.Context().Done():
+					return
+				case <-time.After(time.Duration(internalModel.RetryDelaySecs) * time.Second):
+				}
 			}
 		}
 

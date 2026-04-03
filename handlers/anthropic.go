@@ -49,7 +49,11 @@ func NewAnthropicHandler(registry services.RegistryReader, forwarder *services.F
 			if internalModel.Strategy == models.StrategyFallback &&
 				i < len(internalModel.Externals)-1 &&
 				internalModel.RetryDelaySecs > 0 {
-				time.Sleep(time.Duration(internalModel.RetryDelaySecs) * time.Second)
+				select {
+				case <-r.Context().Done():
+					return
+				case <-time.After(time.Duration(internalModel.RetryDelaySecs) * time.Second):
+				}
 			}
 		}
 
