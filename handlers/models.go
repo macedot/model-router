@@ -7,10 +7,10 @@ import (
 )
 
 type ModelsHandler struct {
-	registry *services.ModelRegistry
+	registry services.RegistryReader
 }
 
-func NewModelsHandler(registry *services.ModelRegistry) *ModelsHandler {
+func NewModelsHandler(registry services.RegistryReader) *ModelsHandler {
 	return &ModelsHandler{registry: registry}
 }
 

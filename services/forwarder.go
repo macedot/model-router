@@ -42,8 +42,9 @@ func (f *Forwarder) ForwardOpenAI(ctx context.Context, req *models.OpenAIRequest
 		anthropicReq.Model = target.Name
 		body, err = json.Marshal(anthropicReq)
 	} else {
-		req.Model = target.Name
-		body, err = json.Marshal(req)
+		openAIReq := *req
+		openAIReq.Model = target.Name
+		body, err = json.Marshal(&openAIReq)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("marshaling request: %w", err)
@@ -89,8 +90,9 @@ func (f *Forwarder) ForwardOpenAIStream(ctx context.Context, req *models.OpenAIR
 		anthropicReq.Model = target.Name
 		body, err = json.Marshal(anthropicReq)
 	} else {
-		req.Model = target.Name
-		body, err = json.Marshal(req)
+		openAIReq := *req
+		openAIReq.Model = target.Name
+		body, err = json.Marshal(&openAIReq)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("marshaling request: %w", err)
@@ -120,10 +122,17 @@ func (f *Forwarder) ForwardOpenAIStream(ctx context.Context, req *models.OpenAIR
 		return nil, fmt.Errorf("external API returned %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	// Accumulate streaming response
+	// Accumulate streaming response with explicit truncation detection.
+	// Returns error if response exceeds maxResponseSize instead of silently truncating.
 	var buf bytes.Buffer
-	reader := io.LimitReader(resp.Body, maxResponseSize)
-	_, err = io.Copy(&buf, reader)
+	limited := &limitedReader{
+		R:    resp.Body,
+		Left: maxResponseSize,
+	}
+	_, err = io.Copy(&buf, limited)
+	if err == errResponseTruncated {
+		return nil, fmt.Errorf("response exceeds maximum size limit of %d bytes", maxResponseSize)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("reading streaming response: %w", err)
 	}
@@ -131,9 +140,38 @@ func (f *Forwarder) ForwardOpenAIStream(ctx context.Context, req *models.OpenAIR
 	return buf.Bytes(), nil
 }
 
+// errResponseTruncated is returned when a response exceeds the size limit.
+var errResponseTruncated = fmt.Errorf("response truncated")
+
+// limitedReader wraps a reader and tracks remaining bytes.
+// It returns errResponseTruncated when the limit is exceeded.
+type limitedReader struct {
+	R    io.Reader
+	Left int64
+}
+
+func (l *limitedReader) Read(p []byte) (int, error) {
+	if l.Left <= 0 {
+		return 0, errResponseTruncated
+	}
+	if int64(len(p)) > l.Left {
+		p = p[:l.Left]
+	}
+	n, err := l.R.Read(p)
+	l.Left -= int64(n)
+	if err == io.EOF && l.Left <= 0 {
+		return n, nil
+	}
+	if l.Left <= 0 && err == nil {
+		return n, errResponseTruncated
+	}
+	return n, err
+}
+
 func (f *Forwarder) ForwardAnthropic(ctx context.Context, req *models.AnthropicRequest, target models.ExternalModel) ([]byte, error) {
-	req.Model = target.Name
-	body, err := json.Marshal(req)
+	anthropicReq := *req
+	anthropicReq.Model = target.Name
+	body, err := json.Marshal(&anthropicReq)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling request: %w", err)
 	}

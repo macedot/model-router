@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 
 	"model-router/models"
@@ -8,11 +10,11 @@ import (
 )
 
 type AnthropicHandler struct {
-	registry  *services.ModelRegistry
+	registry  services.RegistryReader
 	forwarder *services.Forwarder
 }
 
-func NewAnthropicHandler(registry *services.ModelRegistry, forwarder *services.Forwarder) *AnthropicHandler {
+func NewAnthropicHandler(registry services.RegistryReader, forwarder *services.Forwarder) *AnthropicHandler {
 	return &AnthropicHandler{
 		registry:  registry,
 		forwarder: forwarder,
@@ -30,6 +32,24 @@ func (h *AnthropicHandler) Handle(c *fiber.Ctx) error {
 		})
 	}
 
+	if req.Model == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fiber.Map{
+				"type":    "invalid_request_error",
+				"message": "model is required",
+			},
+		})
+	}
+
+	if len(req.Messages) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fiber.Map{
+				"type":    "invalid_request_error",
+				"message": "messages is required and cannot be empty",
+			},
+		})
+	}
+
 	modelName := req.Model
 	internalModel := h.registry.Get(modelName)
 	if internalModel == nil {
@@ -43,15 +63,26 @@ func (h *AnthropicHandler) Handle(c *fiber.Ctx) error {
 
 	ctx := c.Context()
 
-	respBody, err := h.forwarder.ForwardAnthropic(ctx, &req, internalModel.Externals[0])
-	if err != nil {
-		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{
-			"error": fiber.Map{
-				"type":    "api_error",
-				"message": "Forward failed: " + err.Error(),
-			},
-		})
+	var lastErr error
+	for i, external := range internalModel.Externals {
+		respBody, err := h.forwarder.ForwardAnthropic(ctx, &req, external)
+		if err == nil {
+			return c.Type("json").Send(respBody)
+		}
+		lastErr = err
+
+		// Retry delay between externals (skip delay after last one)
+		if internalModel.Strategy == models.StrategyFallback &&
+			i < len(internalModel.Externals)-1 &&
+			internalModel.RetryDelaySecs > 0 {
+			time.Sleep(time.Duration(internalModel.RetryDelaySecs) * time.Second)
+		}
 	}
 
-	return c.Type("json").Send(respBody)
+	return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{
+		"error": fiber.Map{
+			"type":    "api_error",
+			"message": "All providers failed: " + lastErr.Error(),
+		},
+	})
 }

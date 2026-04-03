@@ -52,16 +52,21 @@ func main() {
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	errCh := make(chan error, 1)
 
 	go func() {
 		addr := fmt.Sprintf(":%d", cfg.Port)
 		if err := app.Listen(addr); err != nil {
-			log.Fatalf("Server error: %v", err)
+			errCh <- err
 		}
 	}()
 
-	<-quit
-	log.Println("Shutting down server...")
+	select {
+	case <-quit:
+		log.Println("Shutting down server...")
+	case err := <-errCh:
+		log.Printf("Server error: %v", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), config.Defaults.ShutdownTimeout)
 	defer cancel()

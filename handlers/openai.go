@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 
 	"model-router/models"
@@ -8,11 +10,11 @@ import (
 )
 
 type OpenAIHandler struct {
-	registry  *services.ModelRegistry
+	registry  services.RegistryReader
 	forwarder *services.Forwarder
 }
 
-func NewOpenAIHandler(registry *services.ModelRegistry, forwarder *services.Forwarder) *OpenAIHandler {
+func NewOpenAIHandler(registry services.RegistryReader, forwarder *services.Forwarder) *OpenAIHandler {
 	return &OpenAIHandler{
 		registry:  registry,
 		forwarder: forwarder,
@@ -25,6 +27,24 @@ func (h *OpenAIHandler) Handle(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": fiber.Map{
 				"message": "Invalid request body: " + err.Error(),
+				"type":    "invalid_request_error",
+			},
+		})
+	}
+
+	if req.Model == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fiber.Map{
+				"message": "model is required",
+				"type":    "invalid_request_error",
+			},
+		})
+	}
+
+	if len(req.Messages) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": fiber.Map{
+				"message": "messages is required and cannot be empty",
 				"type":    "invalid_request_error",
 			},
 		})
@@ -46,28 +66,34 @@ func (h *OpenAIHandler) Handle(c *fiber.Ctx) error {
 	// Check if streaming
 	isStream := req.Stream != nil && *req.Stream
 
-	if isStream {
-		respBody, err := h.forwarder.ForwardOpenAIStream(ctx, &req, internalModel.Externals[0])
-		if err != nil {
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{
-				"error": fiber.Map{
-					"message": "Forward failed: " + err.Error(),
-					"type":    "api_error",
-				},
-			})
+	var lastErr error
+	for i, external := range internalModel.Externals {
+		var respBody []byte
+		var err error
+
+		if isStream {
+			respBody, err = h.forwarder.ForwardOpenAIStream(ctx, &req, external)
+		} else {
+			respBody, err = h.forwarder.ForwardOpenAI(ctx, &req, external)
 		}
-		return c.Type("json").Send(respBody)
+
+		if err == nil {
+			return c.Type("json").Send(respBody)
+		}
+		lastErr = err
+
+		// Retry delay between externals (skip delay after last one)
+		if internalModel.Strategy == models.StrategyFallback &&
+			i < len(internalModel.Externals)-1 &&
+			internalModel.RetryDelaySecs > 0 {
+			time.Sleep(time.Duration(internalModel.RetryDelaySecs) * time.Second)
+		}
 	}
 
-	respBody, err := h.forwarder.ForwardOpenAI(ctx, &req, internalModel.Externals[0])
-	if err != nil {
-		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{
-			"error": fiber.Map{
-				"message": "Forward failed: " + err.Error(),
-				"type":    "api_error",
-			},
-		})
-	}
-
-	return c.Type("json").Send(respBody)
+	return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{
+		"error": fiber.Map{
+			"message": "All providers failed: " + lastErr.Error(),
+			"type":    "api_error",
+		},
+	})
 }

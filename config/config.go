@@ -91,15 +91,6 @@ func findConfigFile() (string, error) {
 		}
 	}
 
-	// 3. config.json somewhere on PATH
-	pathDirs := filepath.SplitList(os.Getenv("PATH"))
-	for _, dir := range pathDirs {
-		candidate := filepath.Join(dir, "config.json")
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate, nil
-		}
-	}
-
 	return "", os.ErrNotExist
 }
 
