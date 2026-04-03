@@ -10,7 +10,7 @@ Use this workflow when working on **dependency-removal-after-refactor** in `mode
 
 ## Goal
 
-Removes obsolete dependencies from go.mod and go.sum after a major refactor eliminates their usage.
+Removes obsolete dependencies from go.mod and go.sum after a major refactor eliminates the need for them.
 
 ## Common Files
 
@@ -26,8 +26,8 @@ Removes obsolete dependencies from go.mod and go.sum after a major refactor elim
 
 ## Typical Commit Signals
 
-- Run go mod tidy to clean up go.mod and go.sum.
-- Commit the updated dependency files.
+- Run go mod tidy to clean up go.mod and go.sum
+- Commit updated go.mod and go.sum files
 
 ## Notes
 
