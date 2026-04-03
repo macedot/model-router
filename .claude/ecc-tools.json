@@ -2,24 +2,28 @@
   "version": "1.3",
   "schemaVersion": "1.0",
   "generatedBy": "ecc-tools",
-  "generatedAt": "2026-04-03T17:22:57.084Z",
+  "generatedAt": "2026-04-03T19:12:25.842Z",
   "repo": "https://github.com/macedot/model-router",
   "profiles": {
-    "requested": "developer",
-    "recommended": "developer",
+    "requested": "full",
+    "recommended": "full",
     "effective": "developer",
-    "requestedAlias": "developer",
-    "recommendedAlias": "developer",
+    "requestedAlias": "full",
+    "recommendedAlias": "full",
     "effectiveAlias": "developer"
   },
-  "requestedProfile": "developer",
+  "requestedProfile": "full",
   "profile": "developer",
-  "recommendedProfile": "developer",
+  "recommendedProfile": "full",
   "effectiveProfile": "developer",
   "tier": "free",
   "requestedComponents": [
     "repo-baseline",
-    "workflow-automation"
+    "workflow-automation",
+    "security-audits",
+    "research-tooling",
+    "team-rollout",
+    "governance-controls"
   ],
   "selectedComponents": [
     "repo-baseline",
@@ -28,10 +32,19 @@
   "requestedAddComponents": [],
   "requestedRemoveComponents": [],
   "blockedRemovalComponents": [],
-  "tierFilteredComponents": [],
+  "tierFilteredComponents": [
+    "security-audits",
+    "research-tooling",
+    "team-rollout",
+    "governance-controls"
+  ],
   "requestedRootPackages": [
     "runtime-core",
-    "workflow-pack"
+    "workflow-pack",
+    "agentshield-pack",
+    "research-pack",
+    "team-config-sync",
+    "enterprise-controls"
   ],
   "selectedRootPackages": [
     "runtime-core",
@@ -39,7 +52,11 @@
   ],
   "requestedPackages": [
     "runtime-core",
-    "workflow-pack"
+    "workflow-pack",
+    "agentshield-pack",
+    "research-pack",
+    "team-config-sync",
+    "enterprise-controls"
   ],
   "requestedAddPackages": [],
   "requestedRemovePackages": [],
@@ -52,8 +69,18 @@
     "workflow-pack"
   ],
   "blockedRemovalPackages": [],
-  "tierFilteredRootPackages": [],
-  "tierFilteredPackages": [],
+  "tierFilteredRootPackages": [
+    "agentshield-pack",
+    "research-pack",
+    "team-config-sync",
+    "enterprise-controls"
+  ],
+  "tierFilteredPackages": [
+    "agentshield-pack",
+    "research-pack",
+    "team-config-sync",
+    "enterprise-controls"
+  ],
   "conflictingPackages": [],
   "dependencyGraph": {
     "runtime-core": [],
@@ -67,7 +94,11 @@
   ],
   "requestedModules": [
     "runtime-core",
-    "workflow-pack"
+    "workflow-pack",
+    "agentshield-pack",
+    "research-pack",
+    "team-config-sync",
+    "enterprise-controls"
   ],
   "selectedModules": [
     "runtime-core",
@@ -88,9 +119,9 @@
     ".codex/agents/reviewer.toml",
     ".codex/agents/docs-researcher.toml",
     ".claude/homunculus/instincts/inherited/model-router-instincts.yaml",
-    ".claude/commands/refactor-core-http-framework.md",
+    ".claude/commands/refactor-core-http-server.md",
     ".claude/commands/dependency-removal-after-refactor.md",
-    ".claude/commands/add-or-improve-test-coverage-for-services-and-handlers.md"
+    ".claude/commands/add-or-improve-test-coverage.md"
   ],
   "packageFiles": {
     "runtime-core": [
@@ -106,9 +137,9 @@
       ".claude/homunculus/instincts/inherited/model-router-instincts.yaml"
     ],
     "workflow-pack": [
-      ".claude/commands/refactor-core-http-framework.md",
+      ".claude/commands/refactor-core-http-server.md",
       ".claude/commands/dependency-removal-after-refactor.md",
-      ".claude/commands/add-or-improve-test-coverage-for-services-and-handlers.md"
+      ".claude/commands/add-or-improve-test-coverage.md"
     ]
   },
   "moduleFiles": {
@@ -125,9 +156,9 @@
       ".claude/homunculus/instincts/inherited/model-router-instincts.yaml"
     ],
     "workflow-pack": [
-      ".claude/commands/refactor-core-http-framework.md",
+      ".claude/commands/refactor-core-http-server.md",
       ".claude/commands/dependency-removal-after-refactor.md",
-      ".claude/commands/add-or-improve-test-coverage-for-services-and-handlers.md"
+      ".claude/commands/add-or-improve-test-coverage.md"
     ]
   },
   "files": [
@@ -183,8 +214,8 @@
     },
     {
       "moduleId": "workflow-pack",
-      "path": ".claude/commands/refactor-core-http-framework.md",
-      "description": "Workflow command scaffold for refactor-core-http-framework."
+      "path": ".claude/commands/refactor-core-http-server.md",
+      "description": "Workflow command scaffold for refactor-core-http-server."
     },
     {
       "moduleId": "workflow-pack",
@@ -193,22 +224,22 @@
     },
     {
       "moduleId": "workflow-pack",
-      "path": ".claude/commands/add-or-improve-test-coverage-for-services-and-handlers.md",
-      "description": "Workflow command scaffold for add-or-improve-test-coverage-for-services-and-handlers."
+      "path": ".claude/commands/add-or-improve-test-coverage.md",
+      "description": "Workflow command scaffold for add-or-improve-test-coverage."
     }
   ],
   "workflows": [
     {
-      "command": "refactor-core-http-framework",
-      "path": ".claude/commands/refactor-core-http-framework.md"
+      "command": "refactor-core-http-server",
+      "path": ".claude/commands/refactor-core-http-server.md"
     },
     {
       "command": "dependency-removal-after-refactor",
       "path": ".claude/commands/dependency-removal-after-refactor.md"
     },
     {
-      "command": "add-or-improve-test-coverage-for-services-and-handlers",
-      "path": ".claude/commands/add-or-improve-test-coverage-for-services-and-handlers.md"
+      "command": "add-or-improve-test-coverage",
+      "path": ".claude/commands/add-or-improve-test-coverage.md"
     }
   ],
   "adapters": {
@@ -216,9 +247,9 @@
       "skillPath": ".claude/skills/model-router/SKILL.md",
       "identityPath": ".claude/identity.json",
       "commandPaths": [
-        ".claude/commands/refactor-core-http-framework.md",
+        ".claude/commands/refactor-core-http-server.md",
         ".claude/commands/dependency-removal-after-refactor.md",
-        ".claude/commands/add-or-improve-test-coverage-for-services-and-handlers.md"
+        ".claude/commands/add-or-improve-test-coverage.md"
       ]
     },
     "codex": {
