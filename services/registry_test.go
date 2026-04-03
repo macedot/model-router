@@ -73,3 +73,44 @@ func TestModelRegistry_Get_EmptyRegistry(t *testing.T) {
 		t.Errorf("expected nil for empty registry, got %+v", result)
 	}
 }
+
+func TestModelRegistry_List_ReturnsCopy(t *testing.T) {
+	originals := []models.InternalModel{
+		{Name: "model-1", Externals: []models.ExternalModel{{Name: "ext-1"}}},
+		{Name: "model-2", Externals: []models.ExternalModel{{Name: "ext-2"}}},
+	}
+	registry := NewRegistry(originals)
+
+	list := registry.List()
+	list[0].Name = "modified"
+	list[1].Externals[0].Name = "modified-ext"
+
+	// Verify original is unchanged via fresh List call
+	fresh := registry.List()
+	if fresh[0].Name != "model-1" {
+		t.Errorf("List() returned copy but original was modified")
+	}
+	if fresh[1].Externals[0].Name != "ext-2" {
+		t.Errorf("List() nested externals were modified")
+	}
+}
+
+func TestModelRegistry_Get_ReturnsCopy(t *testing.T) {
+	originals := []models.InternalModel{
+		{Name: "model-1", Externals: []models.ExternalModel{{Name: "ext-1"}}},
+	}
+	registry := NewRegistry(originals)
+
+	model := registry.Get("model-1")
+	model.Name = "modified"
+	model.Externals[0].Name = "modified-ext"
+
+	// Verify original is unchanged via another Get call
+	fresh := registry.Get("model-1")
+	if fresh.Name != "model-1" {
+		t.Errorf("Get() returned copy but original Name was modified")
+	}
+	if fresh.Externals[0].Name != "ext-1" {
+		t.Errorf("Get() returned copy but original Externals were modified")
+	}
+}

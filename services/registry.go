@@ -15,24 +15,42 @@ type RegistryReader interface {
 }
 
 func NewRegistry(modelsList []models.InternalModel) *ModelRegistry {
-	return &ModelRegistry{models: modelsList}
+	result := make([]models.InternalModel, len(modelsList))
+	for i := range modelsList {
+		externalsCopy := make([]models.ExternalModel, len(modelsList[i].Externals))
+		copy(externalsCopy, modelsList[i].Externals)
+		result[i] = modelsList[i]
+		result[i].Externals = externalsCopy
+	}
+	return &ModelRegistry{models: result}
 }
 
 func (r *ModelRegistry) Get(name string) *models.InternalModel {
 	for i := range r.models {
 		if r.models[i].Name == name {
-			// Return a copy to prevent callers from modifying internal state.
-			model := r.models[i]
-			return &model
+			m := r.models[i]
+			externalsCopy := make([]models.ExternalModel, len(m.Externals))
+			copy(externalsCopy, m.Externals)
+			m.Externals = externalsCopy
+			return &m
 		}
 	}
 	return nil
 }
 
 func (r *ModelRegistry) List() []models.InternalModel {
-	// Return a copy to prevent callers from modifying internal state.
 	out := make([]models.InternalModel, len(r.models))
-	copy(out, r.models)
+	for i := range r.models {
+		externalsCopy := make([]models.ExternalModel, len(r.models[i].Externals))
+		copy(externalsCopy, r.models[i].Externals)
+		out[i] = models.InternalModel{
+			Name:           r.models[i].Name,
+			RequestFormat: r.models[i].RequestFormat,
+			Strategy:      r.models[i].Strategy,
+			RetryDelaySecs: r.models[i].RetryDelaySecs,
+			Externals:     externalsCopy,
+		}
+	}
 	return out
 }
 
