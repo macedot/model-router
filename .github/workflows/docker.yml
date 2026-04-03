@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - master
-  tags:
-    - 'v*'
-
-permissions:
-  contents: read
-  packages: write
 
 jobs:
   build-and-push:
