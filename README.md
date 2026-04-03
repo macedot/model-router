@@ -86,13 +86,6 @@ docker compose up -d
 
 ### Environment variables
 
-Create a `.env` file in the same directory as your `config.json` (or current working directory):
-
-```env
-API_KEY_MINIMAX=your_minimax_key
-API_KEY_OPENCODE=your_opencode_key
-```
-
 In config, reference them with `env:VAR_NAME`:
 
 ```json
@@ -199,13 +192,6 @@ docker compose up -d
 
 # Stop
 docker compose down
-```
-
-Environment variables in `.env`:
-
-```env
-API_KEY_MINIMAX=your_key
-API_KEY_OPENCODE=your_key
 ```
 
 ## 🛠️ Development
