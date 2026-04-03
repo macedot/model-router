@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -13,8 +13,8 @@ import (
 func NewOpenAIHandler(registry services.RegistryReader, forwarder *services.Forwarder) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req models.OpenAIRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error":{"message":"Invalid request body: `+err.Error()+`","type":"invalid_request_error"}}`, http.StatusBadRequest)
+		if err := decodeWithLimit(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid request body", "invalid_request_error", err)
 			return
 		}
 
@@ -35,9 +35,9 @@ func NewOpenAIHandler(registry services.RegistryReader, forwarder *services.Forw
 		}
 
 		// Check if streaming
-		isStream := req.Stream != nil && *req.Stream
+		streaming := req.Stream != nil && *req.Stream
 
-		if isStream {
+		if streaming {
 			if len(internalModel.Externals) == 0 {
 				http.Error(w, `{"error":{"message":"No external providers configured","type":"invalid_request_error"}}`, http.StatusInternalServerError)
 				return
@@ -47,6 +47,7 @@ func NewOpenAIHandler(registry services.RegistryReader, forwarder *services.Forw
 			// ForwardOpenAIStream writes directly to w with flushWriter (goproxy pattern)
 			if err := forwarder.ForwardOpenAIStream(r.Context(), &req, internalModel.Externals[0], w); err != nil {
 				// Headers already sent; log but can't write error to client mid-stream
+				log.Printf("[handlers] stream forward error: %v", err)
 			}
 			return
 		}
@@ -75,6 +76,6 @@ func NewOpenAIHandler(registry services.RegistryReader, forwarder *services.Forw
 			}
 		}
 
-		http.Error(w, `{"error":{"message":"All providers failed: `+lastErr.Error()+`","type":"api_error"}}`, http.StatusBadGateway)
+		writeError(w, http.StatusBadGateway, "All providers failed", "api_error", lastErr)
 	}
 }
