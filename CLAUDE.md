@@ -9,7 +9,7 @@ make build              # Build binary (VERSION=1.2.3 sets the version)
 make run                # Build and run
 make test              # Run go test ./...
 make clean             # Remove binary
-make install           # Build and install as systemd user service
+make install           # Build and install binary to ~/.local/bin/
 make release VERSION=1.0.0  # Create git tag and GitHub release
 ```
 
