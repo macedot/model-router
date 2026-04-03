@@ -16,8 +16,8 @@ AI model proxy that accepts OpenAI or Anthropic format requests and forwards the
 ## 🚀 Quick Start
 
 ```bash
-# Build
-make build
+# Install (Linux/macOS)
+curl -sSL https://raw.githubusercontent.com/macedot/model-router/master/install.sh | bash
 
 # Run
 ./model-router
@@ -66,9 +66,23 @@ Use `env:VAR_NAME` in config to reference environment variables.
 ## 🛠️ Development
 
 ```bash
+make build   # Build binary locally
+make run     # Build and run
 make test    # Run go test ./...
-make build   # Build binary
 make install # Install as systemd user service
+make uninstall # Remove installation (keeps config)
+```
+
+### Install via curl
+
+```bash
+curl -sSL https://raw.githubusercontent.com/macedot/model-router/master/install.sh | bash
+```
+
+### Uninstall via curl
+
+```bash
+curl -sSL https://raw.githubusercontent.com/macedot/model-router/master/uninstall.sh | bash
 ```
 
 ## 📄 License

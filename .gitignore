@@ -11,6 +11,8 @@
 !/.gitignore
 !/install.sh
 !/uninstall.sh
+!Dockerfile
+!docker-compose.yml
 !.github/
 
 !config/
