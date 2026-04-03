@@ -1,26 +1,23 @@
 package handlers
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"encoding/json"
+	"net/http"
 
 	"model-router/services"
 )
 
-type ModelsHandler struct {
-	registry services.RegistryReader
-}
+// NewModelsHandler returns an http.HandlerFunc for listing models.
+func NewModelsHandler(registry services.RegistryReader) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		modelsList := registry.List()
 
-func NewModelsHandler(registry services.RegistryReader) *ModelsHandler {
-	return &ModelsHandler{registry: registry}
-}
+		names := make([]string, len(modelsList))
+		for i, m := range modelsList {
+			names[i] = m.Name
+		}
 
-func (h *ModelsHandler) List(c *fiber.Ctx) error {
-	modelsList := h.registry.List()
-
-	names := make([]string, len(modelsList))
-	for i, m := range modelsList {
-		names[i] = m.Name
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"models": names})
 	}
-
-	return c.JSON(fiber.Map{"models": names})
 }
