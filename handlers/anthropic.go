@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -13,8 +12,8 @@ import (
 func NewAnthropicHandler(registry services.RegistryReader, forwarder *services.Forwarder) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req models.AnthropicRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error":{"type":"invalid_request_error","message":"Invalid request body: `+err.Error()+`"}}`, http.StatusBadRequest)
+		if err := decodeWithLimit(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid request body", "invalid_request_error", err)
 			return
 		}
 
@@ -57,6 +56,6 @@ func NewAnthropicHandler(registry services.RegistryReader, forwarder *services.F
 			}
 		}
 
-		http.Error(w, `{"error":{"type":"api_error","message":"All providers failed: `+lastErr.Error()+`"}}`, http.StatusBadGateway)
+		writeError(w, http.StatusBadGateway, "All providers failed", "api_error", lastErr)
 	}
 }
