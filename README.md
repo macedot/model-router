@@ -206,18 +206,6 @@ make uninstall        # Remove installation (keeps config)
 make release VERSION=1.0.0  # Create git tag and GitHub release
 ```
 
-### Install via curl
-
-```bash
-curl -sSL https://raw.githubusercontent.com/macedot/model-router/master/install.sh | bash
-```
-
-### Uninstall via curl
-
-```bash
-curl -sSL https://raw.githubusercontent.com/macedot/model-router/master/uninstall.sh | bash
-```
-
 ## 📄 License
 
 GPLv3
