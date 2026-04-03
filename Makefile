@@ -1,4 +1,4 @@
-.PHONY: build clean run test install release
+.PHONY: build clean run test install uninstall release
 
 VERSION ?= 0.0.1
 
@@ -17,6 +17,9 @@ install:
 
 clean:
 	rm -f model-router
+
+uninstall:
+	@bash ./uninstall.sh
 
 release:
 	@if [ -z "$(VERSION)" ]; then \

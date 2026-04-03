@@ -1,50 +1,55 @@
 #!/bin/bash
 set -e
 
-SERVICE_NAME="model-router"
-SERVICE_FILE="$HOME/.config/systemd/user/${SERVICE_NAME}.service"
-BINARY_PATH="$(pwd)/model-router"
+REPO="macedot/model-router"
+INSTALL_DIR="${HOME}/.local/bin"
+BINARY_PATH="${INSTALL_DIR}/model-router"
+TEMP_DIR=$(mktemp -d)
 
-echo "Installing ${SERVICE_NAME} as user service..."
+# Detect OS and architecture
+detect() {
+    local os arch
+    case "$(uname -s)" in
+        Linux)  os="linux" ;;
+        Darwin) os="darwin" ;;
+        *)      echo "Unsupported OS: $(uname -s)"; exit 1 ;;
+    esac
+    case "$(uname -m)" in
+        x86_64)  arch="amd64" ;;
+        aarch64|arm64) arch="arm64" ;;
+        *)       echo "Unsupported arch: $(uname -m)"; exit 1 ;;
+    esac
+    echo "$os-$arch"
+}
 
-# Build the binary
-echo "Building..."
-make build
+echo "Installing model-router from GitHub releases..."
 
-# Create systemd user service directory if it doesn't exist
-mkdir -p "$HOME/.config/systemd/user"
+# Download latest release
+PLATFORM=$(detect)
+ASSET="model-router-${PLATFORM}.tar.gz"
+TMP_ASSET="${TEMP_DIR}/${ASSET}"
+TMP_EXTRACT="${TEMP_DIR}/model-router"
 
-# Create the service file
-cat > "$SERVICE_FILE" << EOF
-[Unit]
-Description=Model Router - AI Model Proxy
-After=network.target
+URL="https://github.com/${REPO}/releases/latest/download/${ASSET}"
 
-[Service]
-ExecStart=${BINARY_PATH}
-Restart=on-failure
-RestartSec=5
+echo "Downloading ${ASSET}..."
+curl -sL "$URL" -o "$TMP_ASSET"
 
-[Install]
-WantedBy=default.target
-EOF
+echo "Extracting to ${INSTALL_DIR}..."
+mkdir -p "$INSTALL_DIR"
+tar -xzf "$TMP_ASSET" -C "$TEMP_DIR"
+mv "$TMP_EXTRACT" "$BINARY_PATH"
+chmod +x "$BINARY_PATH"
 
-echo "Created service file: ${SERVICE_FILE}"
-
-# Reload systemd and enable the service
-systemctl --user daemon-reload
-systemctl --user enable "${SERVICE_NAME}.service"
+# Clean up
+rm -rf "$TEMP_DIR"
 
 echo ""
-echo "Installation complete!"
+echo "Installed: ${BINARY_PATH}"
+echo ""
+echo "Ensure ${INSTALL_DIR} is in your PATH."
 echo ""
 echo "Commands:"
-echo "  systemctl --user start ${SERVICE_NAME}   # Start the service"
-echo "  systemctl --user stop ${SERVICE_NAME}    # Stop the service"
-echo "  systemctl --user status ${SERVICE_NAME}  # Check status"
-echo "  journalctl --user -u ${SERVICE_NAME}     # View logs"
-echo ""
-echo "To uninstall:"
-echo "  systemctl --user stop ${SERVICE_NAME}"
-echo "  systemctl --user disable ${SERVICE_NAME}"
-echo "  rm ${SERVICE_FILE}"
+echo "  model-router              # Run directly"
+echo "  systemctl --user start model-router   # As systemd service"
+echo "  make uninstall           # Remove installation"
