@@ -7,6 +7,11 @@
 # Ignore everything
 /*
 
+# Claude Code, agents, codex dirs (already ignored by /*, added for clarity)
+.agents/
+.claude/
+.codex/
+
 # But not these files...
 !/.gitignore
 !/install.sh
