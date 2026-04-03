@@ -12,8 +12,11 @@ run: build
 test:
 	go test ./...
 
-install:
-	@bash ./install.sh
+install: build
+	@mkdir -p "$(HOME)/.local/bin"
+	@cp ./model-router "$(HOME)/.local/bin/model-router"
+	@chmod +x "$(HOME)/.local/bin/model-router"
+	@echo "Installed to $(HOME)/.local/bin/model-router"
 
 clean:
 	rm -f model-router
