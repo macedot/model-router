@@ -81,7 +81,9 @@ func (f *Forwarder) ForwardOpenAI(ctx context.Context, req *models.OpenAIRequest
 	return respBody, nil
 }
 
-func (f *Forwarder) ForwardOpenAIStream(ctx context.Context, req *models.OpenAIRequest, target models.ExternalModel) ([]byte, error) {
+// ForwardOpenAIStream forwards a streaming OpenAI request to the target provider,
+// writing chunks directly to w as they arrive. It enforces maxResponseSize via limitedReader.
+func (f *Forwarder) ForwardOpenAIStream(ctx context.Context, req *models.OpenAIRequest, target models.ExternalModel, w io.Writer) error {
 	var body []byte
 	var err error
 
@@ -95,12 +97,12 @@ func (f *Forwarder) ForwardOpenAIStream(ctx context.Context, req *models.OpenAIR
 		body, err = json.Marshal(&openAIReq)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("marshaling request: %w", err)
+		return fmt.Errorf("marshaling request: %w", err)
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, target.URL, bytes.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return fmt.Errorf("creating request: %w", err)
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -113,31 +115,29 @@ func (f *Forwarder) ForwardOpenAIStream(ctx context.Context, req *models.OpenAIR
 
 	resp, err := f.client.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("forwarding request: %w", err)
+		return fmt.Errorf("forwarding request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < minSuccessStatus || resp.StatusCode >= maxSuccessStatus {
 		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
-		return nil, fmt.Errorf("external API returned %d: %s", resp.StatusCode, string(bodyBytes))
+		return fmt.Errorf("external API returned %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	// Accumulate streaming response with explicit truncation detection.
-	// Returns error if response exceeds maxResponseSize instead of silently truncating.
-	var buf bytes.Buffer
+	// Stream response directly to writer with size limit.
 	limited := &limitedReader{
 		R:    resp.Body,
 		Left: maxResponseSize,
 	}
-	_, err = io.Copy(&buf, limited)
+	_, err = io.Copy(w, limited)
 	if err == errResponseTruncated {
-		return nil, fmt.Errorf("response exceeds maximum size limit of %d bytes", maxResponseSize)
+		return fmt.Errorf("response exceeds maximum size limit of %d bytes", maxResponseSize)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("reading streaming response: %w", err)
+		return fmt.Errorf("reading streaming response: %w", err)
 	}
 
-	return buf.Bytes(), nil
+	return nil
 }
 
 // errResponseTruncated is returned when a response exceeds the size limit.

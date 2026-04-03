@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -66,17 +67,35 @@ func (h *OpenAIHandler) Handle(c *fiber.Ctx) error {
 	// Check if streaming
 	isStream := req.Stream != nil && *req.Stream
 
+	// For streaming, use Fiber's SendStream with an io.Pipe so the forwarder
+	// writes chunks directly to the client as they arrive from the upstream provider.
+	// Fallback retry is not supported for streaming since the response is already
+	// in-flight once writing begins.
+	if isStream {
+		c.Set("Content-Type", "text/event-stream")
+		c.Set("Transfer-Encoding", "chunked")
+
+		pipeReader, pipeWriter := io.Pipe()
+		go func() {
+			err := h.forwarder.ForwardOpenAIStream(ctx, &req, internalModel.Externals[0], pipeWriter)
+			if err != nil {
+				// Close the pipe with error so the reader sees it
+				pipeWriter.CloseWithError(err)
+			} else {
+				pipeWriter.Close()
+			}
+		}()
+
+		return c.SendStream(pipeReader)
+	}
+
+	// Non-streaming path supports fallback retry
 	var lastErr error
 	for i, external := range internalModel.Externals {
 		var respBody []byte
 		var err error
 
-		if isStream {
-			respBody, err = h.forwarder.ForwardOpenAIStream(ctx, &req, external)
-		} else {
-			respBody, err = h.forwarder.ForwardOpenAI(ctx, &req, external)
-		}
-
+		respBody, err = h.forwarder.ForwardOpenAI(ctx, &req, external)
 		if err == nil {
 			return c.Type("json").Send(respBody)
 		}
