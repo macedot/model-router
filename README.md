@@ -12,7 +12,7 @@ AI model proxy that accepts OpenAI or Anthropic format requests and forwards the
 - Streaming support (OpenAI `stream: true`)
 - Configurable via JSON with `env:VAR` environment variable support
 - Optional `.env` file loading (current dir → config dir)
-- Config search order: current directory → `~/.model-router/` → `$PATH`
+- Config search order: current directory → `~/.config/model-router/`
 
 ## 🔧 System Requirements
 
@@ -25,7 +25,7 @@ AI model proxy that accepts OpenAI or Anthropic format requests and forwards the
 ### Run with Docker
 
 ```bash
-cp config.json config.json.bak  # if you don't have one yet
+cp config.example.json config.json  # if you don't have one yet
 docker compose up -d
 ```
 
@@ -34,8 +34,7 @@ docker compose up -d
 ### Config file search order
 
 1. `config.json` in the current working directory
-2. `~/.model-router/config.json`
-3. `config.json` anywhere on `$PATH`
+2. `~/.config/model-router/config.json`
 
 ### Config structure
 
@@ -61,13 +60,13 @@ docker compose up -d
 }
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `port` | uint16 | 12345 | Listen port |
-| `request_format` | string | — | Client-facing format: `openai` or `anthropic` |
-| `strategy` | string | — | Routing strategy: `fallback` |
-| `retry_delay_secs` | uint32 | 0 | Seconds to wait before retrying the next external provider |
-| `externals` | array | — | List of external providers |
+| Field              | Type   | Default | Description                                                |
+| ------------------ | ------ | ------- | ---------------------------------------------------------- |
+| `port`             | uint16 | 12345   | Listen port                                                |
+| `request_format`   | string | —       | Client-facing format: `openai` or `anthropic`              |
+| `strategy`         | string | —       | Routing strategy: `fallback`                               |
+| `retry_delay_secs` | uint32 | 0       | Seconds to wait before retrying the next external provider |
+| `externals`        | array  | —       | List of external providers                                 |
 
 ### Environment variables
 
@@ -81,7 +80,7 @@ In config, reference them with `env:VAR_NAME`:
 
 ### `GET /models`
 
-Returns the registered internal models.
+Returns the registered internal models with their configuration.
 
 **Response:**
 
@@ -89,10 +88,13 @@ Returns the registered internal models.
 {
   "models": [
     {
-      "name": "minimax",
-      "request_format": "openai",
+      "name": "coding",
+      "request_format": "",
       "strategy": "fallback",
+      "retry_delay_secs": 0,
       "externals": [
+        { "name": "glm-5.1", "format": "openai" },
+        { "name": "opencode-go/minimax-m2.7", "format": "anthropic" },
         { "name": "MiniMax-M2.7", "format": "anthropic" }
       ]
     }
@@ -169,7 +171,7 @@ Accepts Anthropic-format messages requests.
 
 ```bash
 # Create .env with your API keys
-cp config.json.sample config.json  # if needed
+cp config.example.json config.json  # if needed
 # edit .env with your keys
 
 # Start
@@ -191,4 +193,4 @@ make release VERSION=1.0.0  # Create git tag and GitHub release
 
 ## 📄 License
 
-GPLv3
+AGPL-3.0

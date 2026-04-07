@@ -82,10 +82,10 @@ func findConfigFile() (string, error) {
 		}
 	}
 
-	// 2. ~/.model-router/config.json
+	// 2. ~/.config/model-router/config.json
 	home, err := os.UserHomeDir()
 	if err == nil {
-		candidate := filepath.Join(home, ".model-router", "config.json")
+		candidate := filepath.Join(home, ".config", "model-router", "config.json")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate, nil
 		}

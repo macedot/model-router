@@ -40,12 +40,12 @@ func TestFindConfigFile_HomeDir(t *testing.T) {
 		t.Skip("cannot get home dir")
 	}
 
-	// Create ~/.model-router/config.json
-	modelRouterDir := filepath.Join(home, ".model-router")
+	// Create ~/.config/model-router/config.json
+	modelRouterDir := filepath.Join(home, ".config", "model-router")
 	if err := os.MkdirAll(modelRouterDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(modelRouterDir)
+	defer os.RemoveAll(filepath.Join(home, ".config", "model-router"))
 
 	configPath := filepath.Join(modelRouterDir, "config.json")
 	if err := os.WriteFile(configPath, []byte(`{"port": 12345}`), 0644); err != nil {
@@ -76,7 +76,7 @@ func TestFindConfigFile_NotFound(t *testing.T) {
 
 	// Remove home dir config if exists
 	home, _ := os.UserHomeDir()
-	modelRouterDir := filepath.Join(home, ".model-router")
+	modelRouterDir := filepath.Join(home, ".config", "model-router")
 	os.RemoveAll(modelRouterDir)
 
 	path, err := findConfigFile()

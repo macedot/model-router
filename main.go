@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -45,6 +46,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	// Check port availability
+	addr := fmt.Sprintf(":%d", cfg.Port)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("Port %d is already in use", cfg.Port)
+	}
+	ln.Close()
 
 	// Initialize services
 	registry := services.NewRegistry(cfg.Models)

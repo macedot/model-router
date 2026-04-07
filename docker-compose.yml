@@ -5,9 +5,9 @@ services:
     ports:
       - "12345:12345"
     environment:
-      - API_KEY_MINIMAX=${API_KEY_MINIMAX:-}
-      - API_KEY_OPENCODE=${API_KEY_OPENCODE:-}
-      - API_KEY_ZAI=${API_KEY_ZAI:-}
+      - API_KEY_MINIMAX=${API_KEY_MINIMAX}
+      - API_KEY_OPENCODE=${API_KEY_OPENCODE}
+      - API_KEY_ZAI=${API_KEY_ZAI}
     env_file:
       - .env
     volumes:

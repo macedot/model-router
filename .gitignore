@@ -4,6 +4,7 @@
 # But not these...
 !.github/
 !.gitignore
+!config.example.json
 
 !Dockerfile
 !docker-compose.yml
@@ -12,6 +13,7 @@
 !handlers/
 !models/
 !services/
+!test/
 
 !*.go
 !go.sum
@@ -20,3 +22,4 @@
 !Makefile
 !LICENSE
 !README.md
+!CLAUDE.md

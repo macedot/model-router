@@ -1,8 +1,9 @@
 .PHONY: build clean run test release
 
-VERSION ?= 0.0.1
+#VERSION ?= 5.5.5
 
 build:
+	VERSION ?= 9.9.9
 	@go build -ldflags "-X main.FullVersion=$(VERSION)" -o model-router .
 	@echo "Built model-router v$(VERSION)"
 
