@@ -1,0 +1,26 @@
+# Ignore everything
+/*
+
+# But not these...
+!.github/
+!.gitignore
+!config.example.json
+
+!.dockerignore
+!Dockerfile
+!docker-compose.yml
+
+!config/
+!handlers/
+!models/
+!services/
+!test/
+
+!*.go
+!go.sum
+!go.mod
+
+!Makefile
+!LICENSE
+!README.md
+!CLAUDE.md

@@ -1,0 +1,11 @@
+# Deny everything
+*
+
+# Allow only what's needed for the build
+!go.mod
+!go.sum
+!*.go
+!config/
+!handlers/
+!models/
+!services/

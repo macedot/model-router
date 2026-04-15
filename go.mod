@@ -1,0 +1,3 @@
+module model-router
+
+go 1.26.1
