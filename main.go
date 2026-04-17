@@ -56,7 +56,7 @@ func main() {
 	ln.Close()
 
 	// Initialize services
-	registry := services.NewRegistry(cfg.Models)
+	registry := services.NewRegistry(cfg.Models, cfg.Providers)
 	forwarder := services.NewForwarder()
 
 	// Initialize handlers

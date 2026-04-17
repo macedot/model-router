@@ -23,7 +23,7 @@ func newTestAnthropicHandler() http.HandlerFunc {
 				{Name: "anthropic-external", URL: "https://api.anthropic.com", Format: models.FormatAnthropic},
 			},
 		},
-	})
+	}, nil)
 	forwarder := services.NewForwarder()
 	return NewAnthropicHandler(registry, forwarder)
 }
@@ -126,7 +126,7 @@ func TestAnthropicHandler_Success(t *testing.T) {
 				{Name: "ext", URL: server.URL, APIKey: "key", Format: models.FormatAnthropic},
 			},
 		},
-	})
+	}, nil)
 	handler := NewAnthropicHandler(registry, services.NewForwarder())
 
 	body := `{"model": "test-model", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1024}`
@@ -166,7 +166,7 @@ func TestAnthropicHandler_Fallback(t *testing.T) {
 				{Name: "ok", URL: okServer.URL, APIKey: "key", Format: models.FormatAnthropic},
 			},
 		},
-	})
+	}, nil)
 	handler := NewAnthropicHandler(registry, services.NewForwarder())
 
 	body := `{"model": "test-model", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1024}`
@@ -200,7 +200,7 @@ func TestAnthropicHandler_AllProvidersFail(t *testing.T) {
 				{Name: "fail-2", URL: failServer.URL, APIKey: "key", Format: models.FormatAnthropic},
 			},
 		},
-	})
+	}, nil)
 	handler := NewAnthropicHandler(registry, services.NewForwarder())
 
 	body := `{"model": "test-model", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1024}`
@@ -211,5 +211,35 @@ func TestAnthropicHandler_AllProvidersFail(t *testing.T) {
 
 	if rec.Code != http.StatusBadGateway {
 		t.Errorf("status = %d; want %d", rec.Code, http.StatusBadGateway)
+	}
+}
+
+func TestAnthropicHandler_ProviderFallback(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var req map[string]interface{}
+		json.Unmarshal(body, &req)
+		if req["model"] != "claude-3" {
+			t.Errorf("upstream model = %v; want claude-3", req["model"])
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"content":[{"type":"text","text":"provider-direct"}]}`))
+	}))
+	defer server.Close()
+
+	providers := []models.Provider{
+		{ID: "anthropic", Name: "claude-3", URL: server.URL, APIKey: "key", Format: models.FormatAnthropic},
+	}
+	registry := services.NewRegistry(nil, providers)
+	handler := NewAnthropicHandler(registry, services.NewForwarder())
+
+	body := `{"model": "anthropic", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1024}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusOK)
 	}
 }

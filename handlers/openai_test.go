@@ -24,7 +24,7 @@ func newTestOpenAIHandler() http.HandlerFunc {
 				{Name: "test-external", URL: "https://api.example.com", Format: models.FormatOpenAI},
 			},
 		},
-	})
+	}, nil)
 	forwarder := services.NewForwarder()
 	return NewOpenAIHandler(registry, forwarder)
 }
@@ -45,7 +45,7 @@ func newTestOpenAIHandlerWithServer() (http.HandlerFunc, *httptest.Server) {
 				{Name: "test-external", URL: server.URL, Format: models.FormatOpenAI},
 			},
 		},
-	})
+	}, nil)
 	forwarder := services.NewForwarder()
 	return NewOpenAIHandler(registry, forwarder), server
 }
@@ -183,7 +183,7 @@ func TestOpenAIHandler_Stream_Success(t *testing.T) {
 				{Name: "test-external", URL: sseServer.URL, Format: models.FormatOpenAI},
 			},
 		},
-	})
+	}, nil)
 	forwarder := services.NewForwarder()
 	handler := NewOpenAIHandler(registry, forwarder)
 
@@ -210,7 +210,7 @@ func TestOpenAIHandler_EmptyExternals(t *testing.T) {
 			Strategy:      models.StrategyFallback,
 			Externals:     []models.ExternalModel{},
 		},
-	})
+	}, nil)
 	forwarder := services.NewForwarder()
 	handler := NewOpenAIHandler(registry, forwarder)
 
@@ -249,7 +249,7 @@ func TestOpenAIHandler_Fallback_SecondProviderSucceeds(t *testing.T) {
 				{Name: "ok", URL: okServer.URL, Format: models.FormatOpenAI},
 			},
 		},
-	})
+	}, nil)
 	forwarder := services.NewForwarder()
 	handler := NewOpenAIHandler(registry, forwarder)
 
@@ -289,7 +289,7 @@ func TestOpenAIHandler_Fallback_AllFail(t *testing.T) {
 				{Name: "fail-2", URL: failServer.URL, Format: models.FormatOpenAI},
 			},
 		},
-	})
+	}, nil)
 	forwarder := services.NewForwarder()
 	handler := NewOpenAIHandler(registry, forwarder)
 
@@ -301,5 +301,44 @@ func TestOpenAIHandler_Fallback_AllFail(t *testing.T) {
 
 	if rec.Code != http.StatusBadGateway {
 		t.Errorf("status = %d; want %d", rec.Code, http.StatusBadGateway)
+	}
+}
+
+func TestOpenAIHandler_ProviderFallback(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var req map[string]interface{}
+		json.Unmarshal(body, &req)
+		if req["model"] != "glm-5.1" {
+			t.Errorf("upstream model = %v; want glm-5.1", req["model"])
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"choices":[{"message":{"content":"provider-direct"}}]}`))
+	}))
+	defer server.Close()
+
+	providers := []models.Provider{
+		{ID: "zai", Name: "glm-5.1", URL: server.URL, APIKey: "key", Format: models.FormatOpenAI},
+	}
+	registry := services.NewRegistry(nil, providers)
+	forwarder := services.NewForwarder()
+	handler := NewOpenAIHandler(registry, forwarder)
+
+	body := `{"model": "zai", "messages": [{"role": "user", "content": "hello"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusOK)
+	}
+	respBody, _ := io.ReadAll(rec.Body)
+	var resp map[string]interface{}
+	json.Unmarshal(respBody, &resp)
+	content := resp["choices"].([]interface{})[0].(map[string]interface{})["message"].(map[string]interface{})["content"]
+	if content != "provider-direct" {
+		t.Errorf("content = %q; want %q", content, "provider-direct")
 	}
 }

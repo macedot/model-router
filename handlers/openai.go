@@ -30,6 +30,18 @@ func NewOpenAIHandler(registry services.RegistryReader, forwarder *services.Forw
 
 		internalModel := registry.Get(envelope.Model)
 		if internalModel == nil {
+			provider := registry.GetProvider(envelope.Model)
+			if provider != nil {
+				ext := provider.ToExternal()
+				internalModel = &models.InternalModel{
+					Name:          ext.Name,
+					RequestFormat: models.FormatOpenAI,
+					Strategy:      models.StrategyFallback,
+					Externals:     []models.ExternalModel{ext},
+				}
+			}
+		}
+		if internalModel == nil {
 			http.Error(w, `{"error":{"message":"Model not found: `+envelope.Model+`","type":"invalid_request_error"}}`, http.StatusNotFound)
 			return
 		}

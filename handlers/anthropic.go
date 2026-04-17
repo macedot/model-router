@@ -29,6 +29,18 @@ func NewAnthropicHandler(registry services.RegistryReader, forwarder *services.F
 
 		internalModel := registry.Get(envelope.Model)
 		if internalModel == nil {
+			provider := registry.GetProvider(envelope.Model)
+			if provider != nil {
+				ext := provider.ToExternal()
+				internalModel = &models.InternalModel{
+					Name:          ext.Name,
+					RequestFormat: models.FormatAnthropic,
+					Strategy:      models.StrategyFallback,
+					Externals:     []models.ExternalModel{ext},
+				}
+			}
+		}
+		if internalModel == nil {
 			http.Error(w, `{"error":{"type":"invalid_request_error","message":"Model not found: `+envelope.Model+`"}}`, http.StatusNotFound)
 			return
 		}

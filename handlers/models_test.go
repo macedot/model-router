@@ -11,6 +11,9 @@ import (
 )
 
 func TestModelsHandler_List(t *testing.T) {
+	providers := []models.Provider{
+		{ID: "zai", Name: "glm-5.1", URL: "https://api.z.ai", APIKey: "secret-key", Format: models.FormatOpenAI},
+	}
 	registry := services.NewRegistry([]models.InternalModel{
 		{
 			Name:           "model-a",
@@ -29,7 +32,7 @@ func TestModelsHandler_List(t *testing.T) {
 				{Name: "ext-b", Format: models.FormatAnthropic},
 			},
 		},
-	})
+	}, providers)
 	handler := NewModelsHandler(registry)
 
 	mux := http.NewServeMux()
@@ -44,7 +47,8 @@ func TestModelsHandler_List(t *testing.T) {
 	}
 
 	var result struct {
-		Models []modelResponse `json:"models"`
+		Models    []modelResponse    `json:"models"`
+		Providers []providerResponse `json:"providers"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&result); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
@@ -53,7 +57,6 @@ func TestModelsHandler_List(t *testing.T) {
 		t.Fatalf("len(models) = %d; want 2", len(result.Models))
 	}
 
-	// Verify first model details
 	m := result.Models[0]
 	if m.Name != "model-a" {
 		t.Errorf("name = %q; want %q", m.Name, "model-a")
@@ -77,14 +80,27 @@ func TestModelsHandler_List(t *testing.T) {
 		t.Errorf("external format = %q; want %q", m.Externals[0].Format, models.FormatOpenAI)
 	}
 
+	// Verify providers in response
+	if len(result.Providers) != 1 {
+		t.Fatalf("len(providers) = %d; want 1", len(result.Providers))
+	}
+	if result.Providers[0].ID != "zai" {
+		t.Errorf("provider id = %q; want %q", result.Providers[0].ID, "zai")
+	}
+	if result.Providers[0].URL != "https://api.z.ai" {
+		t.Errorf("provider url = %q; want %q", result.Providers[0].URL, "https://api.z.ai")
+	}
+	if result.Providers[0].Type != models.FormatOpenAI {
+		t.Errorf("provider type = %q; want %q", result.Providers[0].Type, models.FormatOpenAI)
+	}
+
 	// Verify sensitive fields are not exposed in raw JSON
 	body := rec.Body.String()
 	if containsSensitive(body) {
-		t.Error("response should not contain sensitive fields (url, api_key)")
+		t.Error("response should not contain sensitive fields (url/api_key for externals, api_key for providers)")
 	}
 }
 
-// containsSensitive checks that no external URL or API key leaked into the response.
 func containsSensitive(body string) bool {
 	return json.Unmarshal([]byte(body), &struct{}{}) == nil &&
 		(containsString(body, "secret.example.com") || containsString(body, "secret-key"))
@@ -100,7 +116,7 @@ func containsString(s, sub string) bool {
 }
 
 func TestModelsHandler_List_Empty(t *testing.T) {
-	registry := services.NewRegistry([]models.InternalModel{})
+	registry := services.NewRegistry([]models.InternalModel{}, nil)
 	handler := NewModelsHandler(registry)
 
 	mux := http.NewServeMux()
@@ -123,5 +139,33 @@ func TestModelsHandler_List_Empty(t *testing.T) {
 	}
 	if len(modelsList) != 0 {
 		t.Errorf("len(models) = %d; want 0", len(modelsList))
+	}
+
+	providersList, ok := result["providers"].([]interface{})
+	if !ok {
+		t.Fatal("expected providers field to be an array")
+	}
+	if len(providersList) != 0 {
+		t.Errorf("len(providers) = %d; want 0", len(providersList))
+	}
+}
+
+func TestModelsHandler_ProvidersNoApiKey(t *testing.T) {
+	providers := []models.Provider{
+		{ID: "p1", Name: "m1", URL: "https://api.example.com", APIKey: "super-secret-key-12345", Format: models.FormatOpenAI},
+	}
+	registry := services.NewRegistry(nil, providers)
+	handler := NewModelsHandler(registry)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/models", handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/models", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if containsString(body, "super-secret-key-12345") {
+		t.Error("provider API key leaked into response")
 	}
 }

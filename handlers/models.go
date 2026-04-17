@@ -21,6 +21,12 @@ type externalResponse struct {
 	Format models.RequestFormat `json:"format"`
 }
 
+type providerResponse struct {
+	ID   string              `json:"id"`
+	URL  string              `json:"url"`
+	Type models.RequestFormat `json:"type"`
+}
+
 // NewModelsHandler returns an http.HandlerFunc for listing models.
 func NewModelsHandler(registry services.RegistryReader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +51,15 @@ func NewModelsHandler(registry services.RegistryReader) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"models": resp})
+		providers := registry.ListProviders()
+		provResp := make([]providerResponse, len(providers))
+		for i, p := range providers {
+			provResp[i] = providerResponse{
+				ID:   p.ID,
+				URL:  p.URL,
+				Type: p.Format,
+			}
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"models": resp, "providers": provResp})
 	}
 }

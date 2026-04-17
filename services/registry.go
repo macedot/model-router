@@ -2,9 +2,10 @@ package services
 
 import "model-router/models"
 
-// ModelRegistry provides read-only access to registered models.
+// ModelRegistry provides read-only access to registered models and providers.
 type ModelRegistry struct {
-	models []models.InternalModel
+	models    []models.InternalModel
+	providers []models.Provider
 }
 
 // RegistryReader defines the read-only interface for model registry access.
@@ -12,9 +13,14 @@ type ModelRegistry struct {
 type RegistryReader interface {
 	Get(name string) *models.InternalModel
 	List() []models.InternalModel
+	GetProvider(id string) *models.Provider
+	ListProviders() []models.Provider
 }
 
-func NewRegistry(modelsList []models.InternalModel) *ModelRegistry {
+func NewRegistry(modelsList []models.InternalModel, providers []models.Provider) *ModelRegistry {
+	providersCopy := make([]models.Provider, len(providers))
+	copy(providersCopy, providers)
+
 	result := make([]models.InternalModel, len(modelsList))
 	for i := range modelsList {
 		externalsCopy := make([]models.ExternalModel, len(modelsList[i].Externals))
@@ -22,7 +28,7 @@ func NewRegistry(modelsList []models.InternalModel) *ModelRegistry {
 		result[i] = modelsList[i]
 		result[i].Externals = externalsCopy
 	}
-	return &ModelRegistry{models: result}
+	return &ModelRegistry{models: result, providers: providersCopy}
 }
 
 func (r *ModelRegistry) Get(name string) *models.InternalModel {
@@ -51,6 +57,22 @@ func (r *ModelRegistry) List() []models.InternalModel {
 			Externals:     externalsCopy,
 		}
 	}
+	return out
+}
+
+func (r *ModelRegistry) GetProvider(id string) *models.Provider {
+	for i := range r.providers {
+		if r.providers[i].ID == id {
+			p := r.providers[i]
+			return &p
+		}
+	}
+	return nil
+}
+
+func (r *ModelRegistry) ListProviders() []models.Provider {
+	out := make([]models.Provider, len(r.providers))
+	copy(out, r.providers)
 	return out
 }
 
